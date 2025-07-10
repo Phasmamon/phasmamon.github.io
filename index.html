@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <title>Roue à 2 choix</title>
+  <style>
+    body {
+      font-family: 'Comic Sans MS', cursive, sans-serif;
+      text-align: center;
+      margin-top: 30px;
+      background: #fff0f5;
+      color: #4a148c;
+    }
+    #container {
+      position: relative;
+      width: 400px;
+      margin: 0 auto;
+    }
+    #arrow {
+      position: absolute;
+      top: -20px;
+      left: 50%;
+      transform: translateX(-50%) rotate(180deg);
+      z-index: 10;
+    }
+    #arrow polygon {
+      fill: #b71c1c;
+    }
+    canvas {
+      display: block;
+      border: 3px solid #d81b60;
+      border-radius: 50%;
+      box-shadow: 0 0 15px #ad1457;
+      background: #fff0f5;
+    }
+    button {
+      margin-top: 20px;
+      padding: 12px 30px;
+      font-size: 20px;
+      background-color: #d81b60;
+      color: white;
+      border: none;
+      border-radius: 30px;
+      cursor: pointer;
+      box-shadow: 0 4px 10px rgba(216,27,96,0.7);
+      transition: background-color 0.3s ease;
+    }
+    button:hover {
+      background-color: #ad1457;
+    }
+    #result {
+      font-size: 26px;
+      margin-top: 20px;
+      font-weight: bold;
+      color: #880e4f;
+      min-height: 32px;
+    }
+    #action-box {
+      margin: 20px auto;
+      padding: 20px;
+      background-color: #ffe4ec;
+      border: 3px solid #f06292;
+      border-radius: 16px;
+      width: 320px;
+      display: none;
+      box-shadow: 0 0 12px #f48fb1;
+      user-select: none;
+      font-size: 22px;
+      color: #c2185b;
+    }
+    #action-text {
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+    #duration {
+      font-size: 18px;
+      color: #ad1457;
+      margin-bottom: 8px;
+    }
+    #emoji {
+      font-size: 48px;
+      user-select: none;
+    }
+  </style>
+</head>
+<body>
+  <h1>🎯 Fais tourner la roue</h1>
+  <div id="container">
+    <svg id="arrow" width="40" height="40" viewBox="0 0 40 40">
+      <polygon points="20,0 30,20 10,20" />
+    </svg>
+    <canvas id="wheel" width="400" height="400"></canvas>
+  </div>
+  <button onclick="spin()">Tourner</button>
+  <div id="result"></div>
+  <div id="action-box">
+    <div id="action-text"></div>
+    <div id="duration"></div>
+    <div id="emoji"></div>
+  </div>
+
+
+  <script>
+    const options = [
+      "Elaidja autour du membre de Phasma",
+      "Le membre de Phasma dans Elaidja"
+    ];
+
+
+    const canvas = document.getElementById("wheel");
+    const ctx = canvas.getContext("2d");
+    const radius = canvas.width / 2;
+    const arc = (2 * Math.PI) / options.length;
+
+
+    const colors = ["#f48fb1", "#ce93d8"];
+
+
+    function drawWheel() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      for (let i = 0; i < options.length; i++) {
+        const angle = i * arc;
+        ctx.beginPath();
+        ctx.fillStyle = colors[i % colors.length];
+        ctx.moveTo(radius, radius);
+        ctx.arc(radius, radius, radius, angle, angle + arc);
+        ctx.fill();
+
+
+        ctx.save();
+        ctx.translate(radius, radius);
+        ctx.rotate(angle + arc / 2);
+        ctx.translate(radius * 0.6, 0); // Position texte : à mi-distance entre centre et bord
+        ctx.rotate(Math.PI / 2); // Texte à la verticale
+        ctx.fillStyle = "#fff";
+        ctx.font = "bold 16px Arial";
+        ctx.textAlign = "center";
+        ctx.fillText(options[i], 0, 0);
+        ctx.restore();
+      }
+    }
+    drawWheel();
+
+
+    let angle = 0;
+
+
+    function spin() {
+      document.getElementById("result").textContent = "";
+      const actionBox = document.getElementById("action-box");
+      actionBox.style.display = "none";
+      document.getElementById("emoji").textContent = "";
+
+
+      const spins = Math.floor(Math.random() * 3) + 3;
+      const extraAngle = Math.random() * 2 * Math.PI;
+      const totalAngle = spins * 2 * Math.PI + extraAngle;
+
+
+      let start = null;
+      const duration = 3000;
+
+
+      function animate(timestamp) {
+        if (!start) start = timestamp;
+        const progress = timestamp - start;
+        const ease = 1 - Math.pow(1 - progress / duration, 3);
+        angle = ease * totalAngle;
+
+
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.save();
+        ctx.translate(radius, radius);
+        ctx.rotate(angle);
+        ctx.translate(-radius, -radius);
+        drawWheel();
+        ctx.restore();
+
+
+        if (progress < duration) {
+          requestAnimationFrame(animate);
+        } else {
+          const pointerAngle = (3 * Math.PI) / 2;
+          const normalizedAngle = (2 * Math.PI + pointerAngle - (angle % (2 * Math.PI))) % (2 * Math.PI);
+          const selectedIndex = Math.floor(normalizedAngle / arc) % options.length;
+          const selectedOption = options[selectedIndex];
+          const randomDuration = Math.floor(Math.random() * 5) + 1;
+
+
+          document.getElementById("result").textContent = "Résultat : " + selectedOption;
+          document.getElementById("action-text").textContent = selectedOption;
+          document.getElementById("duration").textContent = "⏱️ Durée : " + randomDuration + " minute(s)";
+          actionBox.style.display = "block";
+
+
+          // 🎲 Émoji aléatoire : 🍆, 🍑 ou 🍆🍑💦
+          const emojiElem = document.getElementById("emoji");
+          const choice = Math.floor(Math.random() * 3);
+          emojiElem.textContent =
+            choice === 0 ? "🍆" :
+            choice === 1 ? "🍑" :
+            "🍆🍑💦";
+        }
+      }
+
+
+      requestAnimationFrame(animate);
+    }
+  </script>
+</body>
+</html>
